@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>管理</title>
+    <link rel="stylesheet" href="./node_modules/bootstrap/dist/css/bootstrap.css">
+    <link rel='stylesheet' href='layout.css'>
+    <link rel="stylesheet" href="admi.css">
+    <script src="http://imgcache.qq.com/open/qcloud/js/vod/sdk/ugcUploader.js"></script>
+    <script src='./node_modules/jquery/dist/jquery.min.js'></script>
+    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+</head>
+<body>
+    <div id="app" class="container">
+        <div class="module upload-video">
+            <div @click='showVideo' class="title" style="background: #007BFF;">上传视频</div>
+            <div :class="[videoShow ? 'show' : 'hide', 'content']">
+                <input type="text" placeholder="视频名称" v-model.lazy.trim="video.videoName">
+                <input type="text" placeholder="视频对应课程" v-model.lazy.trim="video.courseName">
+                <input type="file" @change="uploadVideo" ref='video'>
+                <span v-if='uploadCurr'>上传进度: {{Math.floor(uploadCurr * 100)}}%</span>
+                <button @click='cancelUpload'>取消</button>
+                <button type="submit" @click='sureUpload'>上传</button>
+            </div>
+        </div>
+
+        <div class="module upload-slider">
+            <div @click='showSlider' class="title" style="background: #E83E8C;">更换轮播图</div>
+            <div :class="[sliderShow ? 'show' : 'hide', 'content', 'l-row']">
+                <div v-for='(item,idx) in slider' class="l-col slider">
+                    <img class="slider-item" :src="item.src">
+                    <input @change='uploadSlider' :index='idx' type="file" placeholder="更改轮播图" :ref="'slider' + idx">
+                </div>
+                <div v-if='slider.length < 3' class="l-col slider">
+                    <img style="width: 100px; height: 100px;" src="./imgs/add.png">
+                    <input @change='addSlider' type="file" placeholder="添加轮播图" ref='addSlider'>
+                </div>
+            </div>
+        </div>
+
+        <div class="module sign-up">
+            <div @click='showSignUp' class="title"style="background: #6F42C1;">家长注册</div>
+            <div :class="[signUpShow ? 'show' : 'hide', 'content', 'l-col']">
+                <input type="text" placeholder="家长姓名" v-model='parentInfo.username'>
+                <input type="text" placeholder="家长微信号" v-model='parentInfo.wxid'>
+                <input type="text" placeholder="孩子姓名" v-model='childInfo.username'>
+                <div class="l-row">孩子性别
+                    <input style="width: 20px;" type="radio" name='gender' value="男" v-model='childInfo.gender'>男
+                    <input style="width: 20px;" type="radio" name='gender' value="女" v-model='childInfo.gender'>女
+                </div>
+                <input type="number" placeholder="孩子年龄" v-model='childInfo.age'>
+                <input type="date" placeholder="孩子生日" v-model='childInfo.birthday'>
+                课程名字
+                <select v-model='childInfo.courseName'>
+                    <option value="k1">k1</option>
+                    <option value="k2">k2</option>
+                    <option value="k3">k3</option>
+                </select>
+                <button @click='signUp'>提交</button>
+                <p v-if='signUpCode'>验证码：{{signUpCode}}</p>
+            </div>
+        </div>
+
+        <div class="module">
+            <div @click='showSignIn' class="title"style="background: #17A2B8;">课程签到</div>
+            <div :class="[signInShow ? 'show' : 'hide', 'content', 'l-col']">
+                <div class="sign-in-btns">
+                    <button @click="getStudent('k1')">k1</button>
+                    <button @click="getStudent('k2')">k2</button>
+                    <button @click="getStudent('k3')">k3</button>
+                </div>
+                <table border="1">
+                    <tr>
+                        <th>签到</th>
+                        <th>姓名</th>
+                        <th>生日</th>
+                        <th>年龄</th>
+                        <th>课程名</th>
+                        <th>课程进度</th>
+                    </tr>
+                    <tr v-if='studentList.length > 0' v-for='(item, idx) in studentList'>
+                        <td><input type="checkbox" :value="idx"></td>
+                        <td>{{item.username}}</td>
+                        <td>{{item.birthday}}</td>
+                        <td>{{item.age}}</td>
+                        <td>{{item.courseName}}</td>
+                        <td>{{item.courseProcess}}</td>
+                    </tr>
+                </table>
+                <button @click='signIn'>提交</button>
+            </div>
+        </div>
+    </div>
+    <script>
+        let vm = new Vue({
+            el: '#app',
+            data: {
+                baseUrl: 'http://39.106.63.214:8888',
+                videoShow: false,
+                sliderShow: false,
+                signUpShow: false,
+                signInShow: false,
+                signUpCode: '',
+                // 上传视频所需
+                uploadCurr: '',
+                uploadCos: '',
+                uploadTaskId: '',
+                video: {
+                    videoName: '',
+                    courseName: '',
+                    url: ''
+                },
+                slider: [],
+                parentInfo: {
+                    username: '',
+                    wxid: ''
+                },
+                childInfo: {
+                    username: '',
+                    gender: '',
+                    age: '',
+                    birthday: '',
+                    courseName: ''
+                },
+                studentList: []
+            },
+            methods: {
+                showVideo () {
+                    this.videoShow = !this.videoShow;                  
+                },
+                showSlider () {
+                    this.sliderShow = !this.sliderShow;
+                },
+                showSignIn () {
+                    this.signInShow = !this.signInShow;
+                },
+                showSignUp () {
+                    this.signUpShow = !this.signUpShow;
+                },
+                uploadVideo (e) {
+                    let getSignature = function(callback){
+                        callback('h6VMdJo+KGnfNyDTmrts4JHxwpVzZWNyZXRJZD1BS0lETnVIYlZ1dWM0TVVSQzJxVTNTdkc0bUNXbkhidGp6eHUmY3VycmVudFRpbWVTdGFtcD0xNTQzMzI0NDIyJmV4cGlyZVRpbWU9MTU1MTk2NDQyMiZyYW5kb209MTYwMzM5MTIzMw==')
+                    };
+                    let videoFile = this.$refs.video.files[0];
+                    qcVideo.ugcUploader.start({
+                        videoFile: videoFile,
+                        getSignature: getSignature,
+                        allowAudio: 1,
+                        error: (res) => {
+                            alert('上传失败!');
+                        },
+                        progress: (res) => {
+                            this.uploadCurr = res.curr;
+                            this.uploadCos = res.cos;
+                            this.uploadTaskId = res.taskId;
+                        },
+                        finish: (res) => {
+                           this.video.url = res.videoUrl
+                        }
+                    });
+                },
+                sureUpload (e) {
+                    let video = {
+                        url: this.video.url,
+                        courseName: this.video.courseName,
+                        videoName: this.video.videoName
+                    }
+                    $.ajax({
+                        url: `${this.baseUrl}/video/upload`,
+                        method: 'POST',
+                        data: JSON.stringify(video),
+                        contentType: "application/json",
+                        success: (res) => {
+                            alert('上传成功')
+                        }
+                    })
+                },
+                // 取消上传
+                cancelUpload (e) {
+                    qcVideo.ugcUploader.cancel({
+                        cos: this.uploadCos,
+                        taskId: this.uploadTaskId
+                    });
+                },
+                uploadSlider (e) {
+                    let idx = e.target.getAttribute('index')
+                    let fd = new FormData();
+                    fd.append('file', this.$refs['slider' + idx][0].files[0]);
+
+                    $.ajax({
+                        url: `${this.baseUrl}/slideshows/${this.slider[idx].id}`,
+                        type: "PUT",
+                        data: fd,
+                        processData: false,
+                        contentType: false,
+                        success: (res) => {
+                            this.slider[idx].id = res.data.id;
+                            this.slider[idx].src = res.data.photo;
+                        }
+                    })
+                },
+                addSlider (e) {
+                    let fd = new FormData();
+                    fd.append('file', this.$refs.addSlider[0].files[0]);
+
+                    $.ajax({
+                        url: `${this.baseUrl}/slideshows`,
+                        type: "POST",
+                        data: fd,
+                        processData: false,
+                        contentType: false,
+                        success: (res) => {
+                            this.slider.push({
+                                id: res.data.id,
+                                src: res.data.photo
+                            })
+                        }
+                    })
+                },
+                signUp (e) {
+                    if (this.parentInfo.username && this.parentInfo.wxid && this.childInfo.username && this.childInfo.gender && this.childInfo.age && this.childInfo.birthday && this.childInfo.courseName) {
+                        let data = ({
+                            username: this.parentInfo.username,
+                            wxid: this.parentInfo.wxid,
+                            childVos: {
+                                username: this.childInfo.username,
+                                gender: this.childInfo.gender === '男' ? '1' : '0',
+                                age: this.childInfo.age,
+                                birthday: this.childInfo.birthday,
+                                courseName: this.childInfo.courseName
+                            }
+                        });
+                        $.ajax({
+                            url: `${this.baseUrl}/parents`,
+                            type: 'POST',
+                            data: JSON.stringify(data),
+                            contentType: "application/json",
+                            success: (res) => {
+                                this.signUpCode = res.data[this.childInfo.username]
+                            }
+                        })
+                    } else {
+                        alert('信息不全，无法注册！')
+                    }
+                },
+                getStudent (courseName) {
+                    $.ajax({
+                        url: `${this.baseUrl}/course/${courseName}/videos`,
+                        type: 'GET',
+                        success: (res) => {
+                            this.studentList = res.data;
+                        }
+                    })
+                },
+                signIn (e) {
+                    let eles = $('input:checkbox');
+                    let data = [];
+
+                    for (let i = 0; i < eles.length; i++) {
+                        if (eles[i].checked) {
+                            this.studentList[Number(eles[i].value)].courseProcess++
+                            eles[i].checked = false
+                            data.push({
+                                id: String(this.studentList[Number(eles[i].value)].id)
+                            })
+                        }
+                    }
+
+                    $.ajax({
+                        url: `${this.baseUrl}/children/process`,
+                        type: 'PUT',
+                        data: JSON.stringify(data),
+                        contentType: "application/json",
+                        success: (res) => {
+                            alert('成功')
+                        }
+                    })
+                }
+            },
+            created () {
+                $.ajax({
+                    url: `${this.baseUrl}/slideshows`,
+                    success: (res) => {
+                        res.data.forEach(ele => {
+                            let s = {
+                                id: ele.id,
+                                src: ele.photo
+                            }
+                            this.slider.push(s)
+                        });
+                    }
+                })
+            },
+        })
+    </script>
+</body>
+</html>

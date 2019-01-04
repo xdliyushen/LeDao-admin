@@ -1,0 +1,42 @@
+/* layouts */
+.l-row {
+    display: flex;
+    flex-flow: row;
+  }
+  .l-col {
+    display: flex;
+    flex-flow: column;
+  }
+  .l-rowAllMid {
+    flex-flow: row;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+  .l-rowVerMid {
+    flex-flow: row;
+    display: flex;
+    align-items: center;
+  }
+  .l-rowJusMid {
+    flex-flow: row;
+    display: flex;
+    justify-content: center;
+  }
+  .l-colAllMid {
+    flex-flow: column;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+  .l-colVerMid {
+    flex-flow: column;
+    display: flex;
+    justify-content: center;
+  }
+  .l-colJusMid {
+    flex-flow: column;
+    display: flex;
+    align-items: center;
+  }
+  

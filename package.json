@@ -1,0 +1,18 @@
+{
+  "name": "admi",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "bootstrap": "^4.1.3",
+    "jquery": "^3.3.1",
+    "vue": "^2.5.17",
+    "vue-cli": "^2.9.6",
+    "webpack": "^4.26.0"
+  }
+}
